@@ -1,14 +1,8 @@
 pragma solidity ^0.4.0;
 
-
-
-///////////////// Work in Progress ///////////////////
-
-
-
-
-
 // pragma experimental ABIEncoderV2;
+
+// WORK IN PROGRESS //
 
 contract Ballot {
 
@@ -35,7 +29,6 @@ contract Ballot {
       for(uint256 i = 0; i < nPermutations; i++) {
           emit Permutation(i, readPermutation(permutations, i));
       }
-      
   }
   
   event PermutationCount(
@@ -44,7 +37,7 @@ contract Ballot {
       
    event Permutation(
        uint256 index,
-     string permutation  
+      string permutation  
    );
    
    event Bytes (
@@ -52,14 +45,9 @@ contract Ballot {
    );
    
    function testCount() public {
-      // emit PermutationCount(0);
-       //bytes memory permutations = ;
-       findPermutations("gr");
-    //   emit PermutationCount(1);
-      // uint256 nPermutations = getNumberOfPermutations(permutations);
-   //   emit PermutationCount(2);
-    //  emit PermutationCount(nPermutations);
-     // emit PermutationCount(3);
+       bytes memory permutations = findPermutations("greg");
+       uint256 nPermutations = getNumberOfPermutations(permutations);
+       emit PermutationCount(nPermutations);
    }
    
   //function test3() returns uint256 {
@@ -81,12 +69,13 @@ contract Ballot {
       return p;
   }
 
-  function findPermutations(string memory s) public pure returns (bytes memory) { //returns (string[] permutations) {
+  function findPermutations(string memory s) public pure returns (bytes memory retval) { //returns (string[] permutations) {
       //swapped = s;
       
       //permutations = new string[](3);
       //return;
       assembly {
+           // let begin := mload(0x40)
 
           // MEMORY VERSION
           //mstore(swapped, mload(s))
@@ -110,30 +99,11 @@ contract Ballot {
           for {let i := 2} lt(i, sLength) {i := add(i,1)} {
               nPermutations := mul(nPermutations, i)
           }
-          let permutatios := mload(0x40) // permutations // mload(0x40)
-          mstore(permutatios, 0x20) /* type = byte array */
-          permutatios := add(0x20, permutatios)
-          mstore(0x40, add(mload(0x40), add(0x20 /* type */, add(mul(0x40, nPermutations), 0x20))))
-          
-         
-       //   mstore(permutations, mul(0x40, nPermutations))
-          //mstore(add(permutations,0x20), 0x20)
-          //mstore(add(permutations,0x40), 0x80)
-          
-          // Store input string into array
-      //   mstore(add(permutations, 0x20), sLength)
-      //   mstore(add(permutations, 0x40), mload(add(s, 0x20)))
-       //  mstore(0x40, add(mload(0x40), 0x40))
-        // return(permutations, 0x60)
-
-          // 0x20 for value -- length is ignored here
-          //mstore(add(permutations, 0x20), mload(s))
-          
+          let permutatios := mload(0x40)
+          mstore(0x40, add(mload(0x40), add(0x20 /* length */, mul(0x40, nPermutations))))
           
           function swap(s,i,j,sLen) {
-            //mstore(p, sLen)
             let sVal := mload(add(s, 0x20))
-            //mstore(add(p, 0x20), sVal)
           
             let pIpos := add(add(s, 0x20), i)
             let pJpos := add(add(s, 0x20), j)
@@ -150,9 +120,6 @@ contract Ballot {
                mstore(permutations, newLen)
                mstore(add(permutations, add(0x20 /* permutations length */, mul(0x40, sub(newLen, 1)) /* perms up to now */ )), sLen)
                mstore(add(permutations, add(0x40 /* permutations length + 1 word for len */, mul(0x40, sub(newLen, 1)) /* perms up to now */ )), mload(add(s, 0x20)))
-               
-             //  mstore(permutations, sLen)
-             //  mstore(add(permutations, 0x20), mload(add(s, 0x20)))
             }
             if lt(i, sub(sLen, 1)) {
                 for {let j := i} lt(j, sLen) {j := add(j,1)} {
@@ -163,24 +130,11 @@ contract Ballot {
             }
           }
           
-         
-         
-          permute(s, 0,sLength,permutatios)
+          permute(s, 0, sLength, permutatios)
           mstore(permutatios, mul(0x40, mload(permutatios)))
-          //mstore(permutations, permutatios
-          //mstore(mload(0x40), permutatios)
-          //return(mload(0x40), add(0x20, mload(permutatios)))
-          
-          let retAddress := sub(permutatios, 0x20)
-          //mstore(retAddress, permutatios)
-          //let retLen := add(retAddress, 0x20)
-          //mstore(retLen, mload(permutatios))
-   
-    //      return(retAddress, permutatios)    
-   
-          mstore(0x40, permutatios)
-          return(retAddress, /* length of output */ add(0x20 /* type? */, add(0x20 /*  */, mload(permutatios)))) // add(0x20, mload(permutatios)))
+          retval := permutatios
       }
+      
       
      // return swapped;
    //  return permutations;
