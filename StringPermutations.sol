@@ -16,12 +16,12 @@ contract Ballot {
    
   function getNumberOfPermutations(bytes memory permutations) returns (uint256 numberOfPermutations) {
       assembly {
-          numberOfPermutations := div(mload(permutations), 0x40)
+          numberOfPermutations := div(sub(mload(permutations), 0x20), 0x20)
       }
   }
    
   function test() public {
-      bytes memory permutations = findPermutations("abc");
+      bytes memory permutations = findPermutations("bex");
       emit Bytes(permutations);
       uint256 nPermutations = getNumberOfPermutations(permutations);
       emit PermutationCount(nPermutations);
@@ -57,9 +57,9 @@ contract Ballot {
     
   function readPermutation(bytes memory permutations, uint256 permutationIndex) public pure returns (string memory permutation) {
       assembly {
-          let permutationOffset := mul(permutationIndex, 0x40)
-          let permutationLength := mload(add(permutations, add(0x20 /*bytes length*/, permutationOffset)))
-          let permutationValue := mload(add(permutations, add(0x20 /* bytes length */, add(0x20 /*string length*/, permutationOffset))))
+          let permutationOffset := mul(permutationIndex, 0x20)
+          let permutationLength := mload(add(permutations, 0x20))
+          let permutationValue := mload(add(permutations, add(0x40 /* bytes length + string length*/, permutationOffset)))
           mstore(permutation, permutationLength)
           mstore(add(permutation, 0x20), permutationValue)
       }
@@ -70,31 +70,8 @@ contract Ballot {
       return p;
   }
 
-  function findPermutations(string memory s) public /*pure*/ returns (bytes memory retval) { //returns (string[] permutations) {
-      //swapped = s;
-      
-      //permutations = new string[](3);
-      //return;
-      uint256 SL = 5;
+  function findPermutations(string memory s) public pure returns (bytes memory retval) {
       assembly {
-           // let begin := mload(0x40)
-
-          // MEMORY VERSION
-          //mstore(swapped, mload(s))
-          //mstore(add(swapped, 0x20), mload(add(s, 0x20)))
-          //mstore8(add(swapped, 0x20), mload(add(s, 0x2)))
-          //mstore8(add(swapped, 0x21), mload(add(s, 0x1)))
-          
-          // EFFICIENT VERSION
-          //let sLen := mload(s)
-          //mstore(swapped, sLen)
-          //let sVal := mload(add(s, 0x20))
-          //mstore(add(swapped, 0x20), sVal)
-          //mstore8(add(swapped, 0x20), div(sVal, 0x1000000000000000000000000000000000000000000000000000000000000))
-          //mstore8(add(swapped, 0x21), div(sVal, 0x100000000000000000000000000000000000000000000000000000000000000))
-          
-          
-          // USING INDICES
           let sLength := mload(s)
           
           let nPermutations := 0x1
@@ -102,7 +79,8 @@ contract Ballot {
               nPermutations := mul(nPermutations, i)
           }
           let permutatios := mload(0x40)
-          mstore(0x40, add(permutatios, add(0x20 /* length */, mul(0x40, nPermutations))))
+          mstore(add(permutatios, 0x20), sLength)
+          mstore(0x40, add(permutatios, add(0x20 /* array length */, add(0x20 /* str length */, mul(0x20, nPermutations)))))
           
           function swap(s,i,j,sLen) {
             let sVal := mload(add(s, 0x20))
@@ -120,8 +98,8 @@ contract Ballot {
            if eq(i,sub(sLen, 1)) {
                let newLen := add(mload(permutations), 1)
                let offset := add(
-                                  0x20 /* permutations length */,
-                                  mul(0x40, sub(newLen, 1)) /* perms up to now */
+                                  0x40 /* permutations length + string length */,
+                                  mul(0x20, sub(newLen, 1)) /* perms up to now */
                                 )
                mstore(permutations, newLen)
                mstore(
@@ -129,15 +107,7 @@ contract Ballot {
                         permutations, 
                         offset
                     ),
-                    sLen
-               )
-               mstore(
-                   add(
-                        permutations, 
-                        add(0x20, offset)
-                    ),
-                   mload(add(s, 0x20))
-                   
+                    mload(add(s, 0x20))
                )
             }
             if lt(i, sub(sLen, 1)) {
@@ -150,14 +120,8 @@ contract Ballot {
           }
           
           permute(s, 0, sLength, permutatios)
-          mstore(permutatios, mul(0x40, mload(permutatios)))
+          mstore(permutatios, add(0x20, mul(0x20, mload(permutatios))))
           retval := permutatios
       }
-      
-      emit Bytes(retval);
-      emit PermutationCount(SL);
-      
-     // return swapped;
-   //  return permutations;
   }
 }
